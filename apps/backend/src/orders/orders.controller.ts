@@ -9,6 +9,13 @@ export class OrdersController {
     return this.ordersService.addAbono(id, amount);
   }
 
+  
+  @Delete('canceled/all')
+  deleteAllCanceled() {
+    return this.ordersService.deleteAllCanceled();
+  }
+
+
   @Delete(':id/abono/:index')
   revertAbono(@Param('id') id: string, @Param('index') index: string) {
     return this.ordersService.revertAbono(id, parseInt(index, 10));

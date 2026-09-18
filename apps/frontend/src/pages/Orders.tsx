@@ -1,7 +1,7 @@
 // @ts-nocheck
 ﻿import { refreshOutline, copyOutline, informationCircleOutline, trashOutline } from 'ionicons/icons';
 import { IonModal, IonInput } from '@ionic/react';
-import { IonButtons, IonContent, IonHeader, IonMenuButton, IonPage, IonTitle, IonToolbar, IonGrid, IonRow, IonCol, IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent, IonItem, IonButton, IonList, IonLabel, IonBadge, useIonToast, useIonAlert, IonText, IonSegment, IonSegmentButton, IonSearchbar, IonIcon } from '@ionic/react';
+import { IonSelect, IonSelectOption, IonButtons, IonContent, IonHeader, IonMenuButton, IonPage, IonTitle, IonToolbar, IonGrid, IonRow, IonCol, IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent, IonItem, IonButton, IonList, IonLabel, IonBadge, useIonToast, useIonAlert, IonText, IonSegment, IonSegmentButton, IonSearchbar, IonIcon } from '@ionic/react';
 import { useEffect, useState } from 'react';
 import { apiClient } from '../api/client';
 import { OrderStatus, PaymentStatus, DeliveryMethod } from '@nutrideli/shared-types';
@@ -76,7 +76,7 @@ const Orders: React.FC = () => {
     setSelectedOrderForDetails(order);
   };
 
-  const handleCopyOrder = (order: any) => {
+    const handleCopyOrder = (order: any) => {
     let text = '*NutriDeli - Pedido ' + order.customerName + '*\n';
     if (order.customerPhone) text += 'Tel: ' + order.customerPhone + '\n';
     text += 'Tipo: ' + (order.deliveryMethod === DeliveryMethod.DELIVERY ? 'Delivery' : (order.deliveryMethod === DeliveryMethod.PICKUP ? 'Pickup' : 'Local')) + '\n';
@@ -86,7 +86,7 @@ const Orders: React.FC = () => {
     if (order.customerAddress) text += 'Dir: ' + order.customerAddress + '\n';
     text += '-----------------------\n';
     order.items.forEach((item: any) => {
-      const price = item.subtotal ? ' ($' + item.subtotal.toFixed(2) + ')' : '';
+      const price = item.subtotal ? ' ($' + Number(item.subtotal || 0).toFixed(2) + ')' : '';
       text += '- ' + parseFloat(Number(item.quantity).toFixed(4)) + 'x ' + (item.productName || item.product?.name) + price + '\n';
     });
     text += '-----------------------\n';
@@ -94,12 +94,22 @@ const Orders: React.FC = () => {
       text += '*Costo Delivery: $' + order.deliveryFee.toFixed(2) + '*\n';
     }
     const abonosTotal = order.abonosTotal || 0;
-    text += '*TOTAL: $' + order.totalAmount.toFixed(2) + '*\n';
+    const remaining = order.totalAmount - abonosTotal;
+    
+    text += '*TOTAL: $' + order.totalAmount.toFixed(2) + ' (Bs. ' + (order.totalAmount * exchangeRate).toFixed(2) + ')*\n';
+    
     if (abonosTotal > 0) {
       text += '*ABONOS: $' + abonosTotal.toFixed(2) + '*\n';
-      text += '*RESTANTE: $' + (order.totalAmount - abonosTotal).toFixed(2) + '*\n';
+      text += '*RESTANTE: $' + remaining.toFixed(2) + ' (Bs. ' + (remaining * exchangeRate).toFixed(2) + ')*\n';
     }
     if (order.notes) text += '\nNotas: ' + order.notes + '\n';
+    
+    if (remaining > 0 && settings && settings.companyBank && settings.companyPhone && settings.companyCedula) {
+      text += '\n*DATOS PAGO MÓVIL*\n';
+      text += 'Banco: ' + settings.companyBank + '\n';
+      text += 'Tlf: ' + settings.companyPhone + '\n';
+      text += 'CI/RIF: ' + settings.companyCedula + '\n';
+    }
     
     navigator.clipboard.writeText(text);
     presentToast({ message: 'Pedido copiado al portapapeles', duration: 2000, color: 'success' });
@@ -133,6 +143,29 @@ const Orders: React.FC = () => {
   };
 
   useEffect(() => { fetchOrders(); fetchRate(); const interval = setInterval(() => { fetchOrders(); }, 15000); return () => clearInterval(interval); }, []);
+
+  const handleClearCanceled = () => {
+    presentAlert({
+      header: '¿Borrar Cancelados?',
+      message: 'Esta acción eliminará de forma permanente todos los pedidos cancelados del historial. ¿Deseas continuar?',
+      buttons: [
+        { text: 'No, cancelar', role: 'cancel' },
+        { 
+          text: 'Sí, Borrar', 
+          role: 'destructive',
+          handler: async () => {
+            try {
+              await apiClient.delete('/orders/canceled/all');
+              presentToast({ message: 'Pedidos cancelados eliminados', duration: 2000, color: 'success' });
+              fetchOrders();
+            } catch (e) {
+              presentToast({ message: 'Error eliminando pedidos', duration: 3000, color: 'danger' });
+            }
+          }
+        }
+      ]
+    });
+  };
 
   const updateStatus = async (id: string, status: OrderStatus) => {
     try {
@@ -313,7 +346,17 @@ const getStatusColor = (status: OrderStatus) => {
 
       <IonContent fullscreen className="ion-padding">
         <IonGrid>
-          <IonRow>
+            {tab === "historial" && (
+              <IonRow>
+                <IonCol size="12" className="ion-text-center">
+                  <IonButton color="danger" fill="outline" onClick={handleClearCanceled}>
+                    <IonIcon icon={trashOutline} slot="start" />
+                    Borrar Cancelados
+                  </IonButton>
+                </IonCol>
+              </IonRow>
+            )}
+            <IonRow>
             {filteredOrders.map(order => (
               <IonCol size="12" sizeMd="6" sizeLg="4" key={order.id}>
                 <IonCard color={order.status === OrderStatus.DELIVERED ? "light" : (order.status === OrderStatus.CANCELED ? "medium" : "white")}>

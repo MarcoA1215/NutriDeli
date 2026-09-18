@@ -1,0 +1,10 @@
+﻿const fs = require('fs');
+let file = fs.readFileSync('apps/frontend/src/pages/Orders.tsx', 'utf8');
+file = file.replace(/Borrar Cancelados\?/, '¿Borrar Cancelados?');
+file = file.replace(/Esta accin eliminarǭ/, 'Esta accion eliminara');
+file = file.replace(/Deseas \ncontinuar\?/, '¿Deseas continuar?');
+file = file.replace(/Deseas \r?\ncontinuar\?/, '¿Deseas continuar?');
+file = file.replace(/Deseas/, '¿Deseas');
+file = file.replace(/continuar\?/, 'continuar?');
+fs.writeFileSync('apps/frontend/src/pages/Orders.tsx', file);
+console.log("Fixed encoding");

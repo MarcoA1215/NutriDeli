@@ -202,6 +202,13 @@ export class OrdersService {
     });
   }
 
+  
+  async deleteAllCanceled() {
+    const orderRepo = this.dataSource.getRepository(Order);
+    const result = await orderRepo.delete({ status: OrderStatus.CANCELED });
+    return { deletedCount: result.affected };
+  }
+
   async updatePaymentStatus(id: string, dto: UpdatePaymentDto) {
     const orderRepo = this.dataSource.getRepository(Order);
     const order = await orderRepo.findOne({ where: { id } });
