@@ -133,7 +133,7 @@ export class ProductionService {
   }
 
   async revertBatch(batchId: string) {
-    return this.dataSource.transaction(async (manager) => {
+    const result = await this.dataSource.transaction(async (manager) => {
       const batch = await manager.findOne(ProductionBatch, { 
         where: { id: batchId },
       });

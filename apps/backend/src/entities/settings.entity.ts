@@ -1,7 +1,4 @@
-﻿import { Entity, PrimaryColumn, Column 
-  @Column('boolean', { default: true })
-  showAdjustStockButton: boolean;
-} from 'typeorm';
+import { Entity, PrimaryColumn, Column } from 'typeorm';
 
 @Entity()
 export class Settings {
@@ -22,4 +19,7 @@ export class Settings {
 
   @Column('boolean', { default: false })
   allowPartialPayments: boolean;
+
+  @Column('boolean', { default: true })
+  showAdjustStockButton: boolean;
 }

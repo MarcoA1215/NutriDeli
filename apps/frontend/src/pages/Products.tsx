@@ -21,6 +21,12 @@ const Products: React.FC = () => {
     try {
       const res = await apiClient.get<Product[]>('/products');
       setProducts(res.data);
+      try {
+        const s = await apiClient.get<{ showAdjustStockButton?: boolean }>('/settings');
+        setShowAdjust(s.data.showAdjustStockButton !== false);
+      } catch (err) {
+        console.error('Error cargando configuración:', err);
+      }
     } catch (e) {
       console.error(e);
       presentToast({ message: 'Error cargando productos', duration: 3000, color: 'danger' });
