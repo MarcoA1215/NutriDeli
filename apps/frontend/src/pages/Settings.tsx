@@ -10,6 +10,7 @@ interface Settings {
   companyCedula?: string;
   companyPhone?: string;
   allowPartialPayments?: boolean;
+  showAdjustStockButton?: boolean;
 }
 
 const SettingsPage: React.FC = () => {
@@ -38,7 +39,8 @@ const SettingsPage: React.FC = () => {
           companyBank: settings.companyBank, 
           companyCedula: settings.companyCedula, 
           companyPhone: settings.companyPhone,
-          allowPartialPayments: settings.allowPartialPayments
+          allowPartialPayments: settings.allowPartialPayments,
+          showAdjustStockButton: settings.showAdjustStockButton
         });
       presentToast({ message: 'Ajustes guardados', duration: 2000, color: 'success' });
       fetchSettings();
@@ -108,6 +110,10 @@ const SettingsPage: React.FC = () => {
                   <IonItem>
                     <IonLabel>Permitir Pagos Parciales (Abonos)</IonLabel>
                     <IonToggle checked={settings.allowPartialPayments || false} onIonChange={e => setSettings({...settings, allowPartialPayments: e.detail.checked})} />
+                  </IonItem>
+                  <IonItem>
+                    <IonLabel>Mostrar botón de "Añadir Stock Inicial"</IonLabel>
+                    <IonToggle checked={settings.showAdjustStockButton !== false} onIonChange={e => setSettings({...settings, showAdjustStockButton: e.detail.checked})} />
                   </IonItem>
                   <IonButton expand="block" color="primary" onClick={handleSaveSettings} style={{marginTop: '25px'}}>
                     <IonIcon slot="start" icon={saveOutline} />

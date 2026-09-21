@@ -1,4 +1,7 @@
-﻿import { Entity, PrimaryColumn, Column } from 'typeorm';
+﻿import { Entity, PrimaryColumn, Column 
+  @Column('boolean', { default: true })
+  showAdjustStockButton: boolean;
+} from 'typeorm';
 
 @Entity()
 export class Settings {

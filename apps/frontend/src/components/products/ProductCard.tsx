@@ -8,7 +8,7 @@ interface ProductCardProps {
   onEdit: (p: Product) => void;
   onDelete: (p: Product) => void;
   onConfigure: (p: Product) => void;
-  onAdjustStock: (p: Product) => void;
+  onAdjustStock?: (p: Product) => void;
   onRegisterLoss: (p: Product) => void;
   onToggleKitting?: (p: Product) => void;
   onUnpackKit?: (p: Product) => void;
@@ -32,7 +32,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     const buttons: any[] = [
       { text: 'Editar Info / Precio', icon: pencilOutline, cssClass: 'action-sheet-editar', handler: () => onEdit(p) },
       { text: p.isCombo ? 'Configurar Combo' : 'Configurar Receta', icon: buildOutline, cssClass: 'action-sheet-editar', handler: () => onConfigure(p) },
-      { text: 'Stock Inicial / Ajuste', icon: cubeOutline, cssClass: 'action-sheet-editar', handler: () => onAdjustStock(p) }
+      ...(onAdjustStock ? [{ text: 'Stock Inicial / Ajuste', icon: cubeOutline, cssClass: 'action-sheet-editar', handler: () => onAdjustStock(p) }] : [])
     ];
 
     if (p.isCombo && onToggleKitting) {

@@ -11,6 +11,7 @@ const Products: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [presentAlert] = useIonAlert();
   const [searchText, setSearchText] = useState('');
+  const [showAdjust, setShowAdjust] = useState(true);
   const [isClientMode, setIsClientMode] = useState(false);
   const [presentToast] = useIonToast();
 
@@ -61,6 +62,7 @@ const Products: React.FC = () => {
   const openAdjustStockAlert = (p: Product) => {
     presentAlert({
       header: 'Stock Inicial de ' + p.name,
+      message: '⚠️ ATENCIÓN: Este botón es únicamente para cargar inventario inicial. Si deseas fabricar un lote usando materia prima, ve a la pestaña Producción.',
       inputs: [{ name: 'quantity', type: 'number', placeholder: 'Cantidad a sumar', min: 1 }],
       buttons: [
         { text: 'Cancelar', role: 'cancel' },
@@ -240,7 +242,7 @@ const Products: React.FC = () => {
                         onEdit={openEditProductAlert}
                         onDelete={handleDeleteProduct}
                         onConfigure={() => setSelectedProductForRecipe(p)}
-                        onAdjustStock={openAdjustStockAlert}
+                        onAdjustStock={showAdjust ? openAdjustStockAlert : undefined}
                         onRegisterLoss={openLossAlert}
                         onToggleKitting={handleToggleKitting}
                         onUnpackKit={handleUnpackKit}
