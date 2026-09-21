@@ -283,6 +283,7 @@ export class ProductsService {
   async adjustStock(id: string, quantity: number) {
     const product = await this.findOne(id);
     product.stockQuantity += quantity;
+    product.physicalStock += quantity;
     return this.productRepo.save(product);
   }
 

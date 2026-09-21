@@ -14,7 +14,7 @@ export class ProductionService {
     private dataSource: DataSource) {}
 
   async createBatch(productId: string, quantityToProduce: number) {
-    return this.dataSource.transaction(async (manager) => {
+    const result = await this.dataSource.transaction(async (manager) => {
       const product = await manager.findOne(Product, {
         where: { id: productId },
         relations: { recipe: { rawMaterial: true }, comboItems: { component: true } },
@@ -117,13 +117,12 @@ export class ProductionService {
       });
       await manager.save(ProductionBatch, batch);
 
-      await this.ordersService.autoAllocatePhysicalStock();
-
-      return {
-        product: updatedProduct,
-        batch
-      };
+      return { product: updatedProduct, batch };
     });
+    
+    // Ejecutar fuera de la transaccion principal para evitar deadlocks en SQLite
+    await this.ordersService.autoAllocatePhysicalStock().catch(e => console.error('Error auto-allocating stock', e));
+    return result;
   }
 
   async getBatches() {
@@ -186,8 +185,10 @@ export class ProductionService {
       }
 
       await manager.remove(ProductionBatch, batch);
-      await this.ordersService.autoAllocatePhysicalStock();
       return { success: true, message: 'Lote revertido correctamente' };
     });
+
+    await this.ordersService.autoAllocatePhysicalStock().catch(e => console.error('Error auto-allocating stock', e));
+    return result;
   }
 }
