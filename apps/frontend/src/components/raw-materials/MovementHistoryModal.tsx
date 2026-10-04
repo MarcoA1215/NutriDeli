@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import {
   IonModal, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton,
-  IonContent, IonBadge, useIonAlert, useIonToast
+  IonContent, IonBadge, useIonAlert, useIonToast, IonItem, IonLabel,
+  IonInput, IonSelect, IonSelectOption, IonNote
 } from '@ionic/react';
 import { apiClient } from '../../api/client';
 import type { RawMaterial, Movement } from '../../types';
@@ -22,17 +23,18 @@ interface MovementHistoryModalProps {
   material: RawMaterial | null;
   onClose: () => void;
   onCorrected: () => void;
+  exchangeRate?: number;
 }
 
-export const MovementHistoryModal: React.FC<MovementHistoryModalProps> = ({ material, onClose, onCorrected }) => {
+export const MovementHistoryModal: React.FC<MovementHistoryModalProps> = ({ material, onClose, onCorrected, exchangeRate = 36.5 }) => {
   const [movements, setMovements] = useState<Movement[]>([]);
-  
-
-  
-
-  
   const [presentAlert] = useIonAlert();
   const [presentToast] = useIonToast();
+
+  const [editingMovement, setEditingMovement] = useState<Movement | null>(null);
+  const [editQty, setEditQty] = useState<number | undefined>();
+  const [editCost, setEditCost] = useState<number | undefined>();
+  const [editCurrency, setEditCurrency] = useState<'USD' | 'VES'>('USD');
 
   useEffect(() => {
     if (material) fetchMovements(material.id);
@@ -49,30 +51,25 @@ export const MovementHistoryModal: React.FC<MovementHistoryModalProps> = ({ mate
     }
   };
 
-  const openEditMovementAlert = (mov: Movement) => {
+  const openEditLossAlert = (mov: Movement) => {
     if (!material) return;
-    const isLoss = mov.type === 'LOSS';
-    const inputs: any[] = [{ name: 'qty', type: 'number', value: mov.quantity, placeholder: 'Cantidad correcta' }];
-    if (!isLoss) inputs.push({ name: 'cost', type: 'number', value: mov.totalCost, placeholder: 'Costo total correcto ($)' });
-
     presentAlert({
-      header: isLoss ? 'Corregir Pérdida' : 'Corregir Compra',
-      inputs,
+      header: 'Corregir Pérdida',
+      inputs: [{ name: 'qty', type: 'number', value: mov.quantity, placeholder: 'Cantidad correcta' }],
       buttons: [
         { text: 'Cancelar', role: 'cancel' },
         {
           text: 'Guardar',
           handler: async (data) => {
             if (!data.qty) return false;
-            if (!isLoss && !data.cost) return false;
             try {
               await apiClient.put('/stock-movements/' + mov.id, {
                 quantity: parseFloat(data.qty),
-                totalCost: isLoss ? 0 : parseFloat(data.cost)
+                totalCost: 0
               });
               fetchMovements(material.id);
               onCorrected(); 
-              presentToast({ message: 'Movimiento corregido', duration: 2000, color: 'success' });
+              presentToast({ message: 'Pérdida corregida', duration: 2000, color: 'success' });
             } catch (e) {
               presentToast({ message: 'Error al corregir', duration: 3000, color: 'danger' });
             }
@@ -80,6 +77,39 @@ export const MovementHistoryModal: React.FC<MovementHistoryModalProps> = ({ mate
         }
       ]
     });
+  };
+
+  const handleEditClick = (mov: Movement) => {
+    if (mov.type === 'LOSS') {
+      openEditLossAlert(mov);
+    } else {
+      setEditingMovement(mov);
+      setEditQty(mov.quantity);
+      setEditCost(mov.totalCost);
+      setEditCurrency('USD');
+    }
+  };
+
+  const handleSaveCorrection = async () => {
+    if (!editingMovement || !material || !editQty) return;
+    let finalCostUSD = editCost || 0;
+    if (editCurrency === 'VES') {
+      const rate = exchangeRate && exchangeRate > 0 ? exchangeRate : 1;
+      finalCostUSD = (editCost || 0) / rate;
+    }
+
+    try {
+      await apiClient.put('/stock-movements/' + editingMovement.id, {
+        quantity: editQty,
+        totalCost: finalCostUSD
+      });
+      setEditingMovement(null);
+      fetchMovements(material.id);
+      onCorrected(); 
+      presentToast({ message: 'Compra corregida exitosamente', duration: 2000, color: 'success' });
+    } catch (e) {
+      presentToast({ message: 'Error al corregir compra', duration: 3000, color: 'danger' });
+    }
   };
 
   return (
@@ -110,7 +140,7 @@ export const MovementHistoryModal: React.FC<MovementHistoryModalProps> = ({ mate
                   <td>{mov.description}</td>
                   <td>
                     {(mov.type === 'IN_PURCHASE' || mov.type === 'LOSS') && (
-                      <IonButton fill="clear" color="primary" size="small" onClick={() => openEditMovementAlert(mov)}>Corregir</IonButton>
+                      <IonButton fill="clear" color="primary" size="small" onClick={() => handleEditClick(mov)}>Corregir</IonButton>
                     )}
                   </td>
                 </tr>
@@ -118,8 +148,57 @@ export const MovementHistoryModal: React.FC<MovementHistoryModalProps> = ({ mate
             </tbody>
           </table>
         </div>
+
+        {/* Modal para corregir compras con selector de moneda USD / VES */}
+        <IonModal isOpen={!!editingMovement} onDidDismiss={() => setEditingMovement(null)}>
+          <IonHeader>
+            <IonToolbar color="primary">
+              <IonTitle>Corregir Compra</IonTitle>
+              <IonButtons slot="end">
+                <IonButton onClick={() => setEditingMovement(null)}>Cancelar</IonButton>
+              </IonButtons>
+            </IonToolbar>
+          </IonHeader>
+          <IonContent className="ion-padding">
+            {editingMovement && (
+              <>
+                <h4 style={{ marginTop: 0 }}>{material?.name}</h4>
+                <IonItem>
+                  <IonLabel position="stacked">Cantidad ({material?.unit})</IonLabel>
+                  <IonInput 
+                    type="number" step="any"
+                    value={editQty}
+                    onIonInput={e => setEditQty(parseFloat(e.detail.value!) || undefined)}
+                  />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="stacked" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                    <span>Costo Total</span>
+                    <IonSelect value={editCurrency} onIonChange={e => setEditCurrency(e.detail.value)} style={{ minHeight: 'auto', padding: '0', background: '#eee', borderRadius: '4px', paddingLeft: '5px', paddingRight: '5px' }}>
+                      <IonSelectOption value="USD">$ USD</IonSelectOption>
+                      <IonSelectOption value="VES">Bs. VES</IonSelectOption>
+                    </IonSelect>
+                  </IonLabel>
+                  <IonInput 
+                    type="number" step="any"
+                    value={editCost}
+                    onIonInput={e => setEditCost(parseFloat(e.detail.value!) || undefined)}
+                    placeholder="0.00"
+                  />
+                </IonItem>
+                {editCurrency === 'VES' && editCost && (
+                  <IonNote color="primary" className="ion-margin-top ion-padding-horizontal" style={{ display: 'block', fontSize: '13px' }}>
+                    Equivalente a registrar: $ {(editCost / (exchangeRate || 1)).toFixed(2)} USD (Tasa: {exchangeRate} Bs/$)
+                  </IonNote>
+                )}
+                <IonButton expand="block" color="success" className="ion-margin-top" onClick={handleSaveCorrection}>
+                  Guardar Corrección
+                </IonButton>
+              </>
+            )}
+          </IonContent>
+        </IonModal>
       </IonContent>
     </IonModal>
   );
 };
-

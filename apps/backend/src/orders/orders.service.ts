@@ -98,12 +98,14 @@ export class OrdersService {
         if (product) {
           if (product.isCombo && !product.isPreAssembled && product.comboItems && product.comboItems.length > 0) {
             for (const ci of product.comboItems) {
-              if (ci.component && ci.component.stockQuantity < (itemDto.quantity * ci.quantity)) {
+              const compStock = Math.min(ci.component?.stockQuantity ?? 0, ci.component?.physicalStock ?? 0);
+              if (ci.component && compStock < (itemDto.quantity * ci.quantity)) {
                 requiresPreparation = true;
               }
             }
           } else if (!product.isCombo || product.isPreAssembled) {
-            if (product.stockQuantity < itemDto.quantity) {
+            const effectiveStock = Math.min(product.stockQuantity ?? 0, product.physicalStock ?? 0);
+            if (effectiveStock < itemDto.quantity) {
               requiresPreparation = true;
             }
           }
@@ -150,6 +152,9 @@ export class OrdersService {
           for (const ci of product.comboItems) {
             if (ci.component) {
               ci.component.stockQuantity -= (itemDto.quantity * ci.quantity);
+              if (ci.component.physicalStock !== undefined && ci.component.stockQuantity > ci.component.physicalStock) {
+                ci.component.stockQuantity = ci.component.physicalStock;
+              }
               await manager.save(Product, ci.component);
             }
           }
@@ -171,6 +176,9 @@ export class OrdersService {
           }
         } else if (!product.isCombo || product.isPreAssembled) {
             product.stockQuantity -= itemDto.quantity;
+            if (product.physicalStock !== undefined && product.stockQuantity > product.physicalStock) {
+              product.stockQuantity = product.physicalStock;
+            }
             await manager.save(Product, product);
           }
 

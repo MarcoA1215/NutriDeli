@@ -31,6 +31,14 @@ export class ProductsService {
       }
     });
 
+    // Auto-reparación en BD: corregir registros desincronizados donde stockQuantity > physicalStock
+    for (const p of products) {
+      if (p.physicalStock !== undefined && p.physicalStock !== null && p.stockQuantity > p.physicalStock) {
+        p.stockQuantity = p.physicalStock;
+        await this.productRepo.update(p.id, { stockQuantity: p.physicalStock });
+      }
+    }
+
     return products.map(p => {
       let finalStock = p.stockQuantity;
       let finalPhysical = p.physicalStock;
@@ -47,6 +55,9 @@ export class ProductsService {
         finalStock = minAvail === Infinity ? 0 : minAvail;
         finalPhysical = minPhys === Infinity ? 0 : minPhys;
       }
+
+      // Tope: el stock final para venta nunca puede ser mayor al stock físico existente
+      finalStock = Math.min(finalStock, finalPhysical);
 
       const cleanedComboItems = p.comboItems?.map(ci => ({
         id: ci.id,
@@ -67,11 +78,21 @@ export class ProductsService {
   async findOne(id: string) {
     const product = await this.productRepo.findOne({ where: { id } });
     if (!product) throw new NotFoundException('Producto no encontrado');
+    if (product.physicalStock !== undefined && product.physicalStock !== null && product.stockQuantity > product.physicalStock) {
+      product.stockQuantity = product.physicalStock;
+      await this.productRepo.update(product.id, { stockQuantity: product.physicalStock });
+    }
     return product;
   }
 
   async create(dto: CreateProductDto) {
     const product = this.productRepo.create(dto);
+    if (product.physicalStock === undefined || product.physicalStock === null) {
+      product.physicalStock = product.stockQuantity || 0;
+    }
+    if (product.stockQuantity > product.physicalStock) {
+      product.stockQuantity = product.physicalStock;
+    }
     return this.productRepo.save(product);
   }
 
@@ -104,6 +125,9 @@ export class ProductsService {
       }
 
       Object.assign(product, dto);
+      if (product.physicalStock !== undefined && product.physicalStock !== null && product.stockQuantity > product.physicalStock) {
+        product.stockQuantity = product.physicalStock;
+      }
       return manager.save(Product, product);
     });
   }
@@ -284,6 +308,9 @@ export class ProductsService {
     const product = await this.findOne(id);
     product.stockQuantity += quantity;
     product.physicalStock += quantity;
+    if (product.stockQuantity > product.physicalStock) {
+      product.stockQuantity = product.physicalStock;
+    }
     return this.productRepo.save(product);
   }
 

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   IonModal, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton,
   IonContent, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
@@ -50,7 +50,8 @@ export const StockOperationModal: React.FC<Props> = ({ material, operationType, 
         }
         let totalUSD = cost;
         if (currency === 'VES') {
-          totalUSD = cost / exchangeRate;
+          const rate = exchangeRate && exchangeRate > 0 ? exchangeRate : 1;
+          totalUSD = cost / rate;
         }
         await apiClient.post(`/raw-materials/${material.id}/restock`, {
           quantity: finalQuantity,
@@ -118,21 +119,28 @@ export const StockOperationModal: React.FC<Props> = ({ material, operationType, 
             </IonItem>
 
             {operationType === 'restock' && (
-              <IonItem>
-                <IonLabel position="stacked" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-  <span>Costo Total de la Compra</span>
-  <IonSelect value={currency} onIonChange={e => setCurrency(e.detail.value)} style={{ minHeight: 'auto', padding: '0', background: '#eee', borderRadius: '4px', paddingLeft: '5px', paddingRight: '5px' }}>
-    <IonSelectOption value="USD">$ USD</IonSelectOption>
-    <IonSelectOption value="VES">Bs. VES</IonSelectOption>
-  </IonSelect>
-</IonLabel>
-                <IonInput 
-                  type="number" step="any" 
-                  value={cost} 
-                  onIonInput={e => setCost(parseFloat(e.detail.value!) || undefined)} 
-                  placeholder="0.00" 
-                />
-              </IonItem>
+              <>
+                <IonItem>
+                  <IonLabel position="stacked" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                    <span>Costo Total de la Compra</span>
+                    <IonSelect value={currency} onIonChange={e => setCurrency(e.detail.value)} style={{ minHeight: 'auto', padding: '0', background: '#eee', borderRadius: '4px', paddingLeft: '5px', paddingRight: '5px' }}>
+                      <IonSelectOption value="USD">$ USD</IonSelectOption>
+                      <IonSelectOption value="VES">Bs. VES</IonSelectOption>
+                    </IonSelect>
+                  </IonLabel>
+                  <IonInput 
+                    type="number" step="any" 
+                    value={cost} 
+                    onIonInput={e => setCost(parseFloat(e.detail.value!) || undefined)} 
+                    placeholder="0.00" 
+                  />
+                </IonItem>
+                {currency === 'VES' && cost && (
+                  <IonNote color="primary" className="ion-margin-top ion-padding-horizontal" style={{display: 'block', fontSize: '13px'}}>
+                    Equivalente a registrar: $ {(cost / (exchangeRate || 1)).toFixed(2)} USD (Tasa: {exchangeRate} Bs/$)
+                  </IonNote>
+                )}
+              </>
             )}
 
             {operationType === 'loss' && (

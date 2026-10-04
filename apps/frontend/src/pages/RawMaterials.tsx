@@ -81,7 +81,13 @@ const RawMaterials: React.FC = () => {
       finalStock = inputQty / 1000;
     }
 
-    const costPerBaseUnit = inputCost / finalStock;
+    let totalCostUSD = inputCost;
+    if (currency === 'VES') {
+      const rate = exchangeRate && exchangeRate > 0 ? exchangeRate : 1;
+      totalCostUSD = inputCost / rate;
+    }
+
+    const costPerBaseUnit = totalCostUSD / finalStock;
 
     try {
       await apiClient.post('/raw-materials', { 
@@ -219,9 +225,14 @@ const RawMaterials: React.FC = () => {
 </IonLabel>
                     <IonInput type="number" step="any" value={inputCost} onIonInput={e => setInputCost(parseFloat(e.detail.value!) || undefined)} placeholder="Ej. 2.00" />
                   </IonItem>
+                  {currency === 'VES' && inputCost && (
+                    <IonNote color="primary" className="ion-margin-top ion-padding-horizontal" style={{display: 'block', fontSize: '13px'}}>
+                      Equivalente: $ {(inputCost / (exchangeRate || 1)).toFixed(2)} USD (Tasa: {exchangeRate} Bs/$)
+                    </IonNote>
+                  )}
                   {inputQty && (inputUnit === 'g' || inputUnit === 'ml') && (
                     <IonNote color="medium" className="ion-margin-top ion-padding-horizontal" style={{display: 'block', fontSize: '12px'}}>
-                      Nota: Se registrarán {inputQty / 1000} {baseUnit} en el inventario. Costo: ${(inputCost || 0) / (inputQty / 1000)} x {baseUnit}.
+                      Nota: Se registrarán {inputQty / 1000} {baseUnit} en el inventario. Costo: $ {((currency === 'VES' ? (inputCost || 0) / (exchangeRate || 1) : (inputCost || 0)) / (inputQty / 1000)).toFixed(2)} x {baseUnit}.
                     </IonNote>
                   )}
                   <IonButton expand="block" color="success" className="ion-margin-top" onClick={handleCreate}>Guardar</IonButton>
@@ -231,7 +242,7 @@ const RawMaterials: React.FC = () => {
       </IonContent>
     </IonModal>
   
-        <MovementHistoryModal material={selectedMaterialForHistory} onClose={() => setSelectedMaterialForHistory(null)} onCorrected={fetchMaterials} />
+        <MovementHistoryModal material={selectedMaterialForHistory} onClose={() => setSelectedMaterialForHistory(null)} onCorrected={fetchMaterials} exchangeRate={exchangeRate} />
         
         <StockOperationModal 
           material={operationMaterial} 
