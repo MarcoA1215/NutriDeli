@@ -1,4 +1,4 @@
-﻿export type Product = {
+export type Product = {
   id: string;
   name: string;
   category?: string;
@@ -73,12 +73,16 @@ export type DashboardSummary = {
     quantity: number;
     revenue: number;
   }[];
+  externalInvestments?: number;
+  manualReinvestments?: number;
+  reinvestmentConsolidated?: number;
+  payrollExpenses?: number;
+  realNetProfit?: number;
 };
-
-
 
 export type DeliveryZone = {
   id: string;
   name: string;
   feePrice: number;
 };
+

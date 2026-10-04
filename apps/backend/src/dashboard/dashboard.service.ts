@@ -6,6 +6,8 @@ import { Product } from '../entities/product.entity';
 import { StockMovement } from '../entities/stock-movement.entity';
 import { Order } from '../entities/order.entity';
 import { OrderItem } from '../entities/order-item.entity';
+import { Investment, InvestmentType } from '../entities/investment.entity';
+import { OperatingExpense, ExpenseCategory } from '../entities/operating-expense.entity';
 import { MovementType, OrderStatus } from '@nutrideli/shared-types';
 
 @Injectable()
@@ -15,7 +17,9 @@ export class DashboardService {
     @InjectRepository(Product) private productRepo: Repository<Product>,
     @InjectRepository(StockMovement) private movementRepo: Repository<StockMovement>,
     @InjectRepository(Order) private orderRepo: Repository<Order>,
-    @InjectRepository(OrderItem) private orderItemRepo: Repository<OrderItem>
+    @InjectRepository(OrderItem) private orderItemRepo: Repository<OrderItem>,
+    @InjectRepository(Investment) private investmentRepo: Repository<Investment>,
+    @InjectRepository(OperatingExpense) private expenseRepo: Repository<OperatingExpense>,
   ) {}
 
   async getSummary() {
@@ -24,6 +28,8 @@ export class DashboardService {
       relations: { recipe: { rawMaterial: true } }
     });
     const movements = await this.movementRepo.find();
+    const investments = await this.investmentRepo.find();
+    const operatingExpenses = await this.expenseRepo.find();
     
     // Solo tomamos en cuenta pedidos que no están cancelados
     const orders = await this.orderRepo.find({
@@ -102,7 +108,32 @@ export class DashboardService {
 
     const historicalRevenue = orders.reduce((acc, o) => acc + o.totalAmount, 0);
     
-    const reinvestmentExpense = historicalInvestment - totalInventoryCapital;
+    // Reglas de Inversión vs Reinversión y Utilidad Neta Real
+    // 1. Reinversión de Inventario: Compras de Insumos - Capital en Stock Actual
+    const reinvestmentExpense = Math.max(0, historicalInvestment - totalInventoryCapital);
+
+    // 2. Inversiones manuales
+    const manualReinvestments = investments
+      .filter(i => i.type === InvestmentType.REINVERSION_GANANCIA)
+      .reduce((acc, i) => acc + i.amount, 0);
+
+    const externalInvestments = investments
+      .filter(i => i.type === InvestmentType.INVERSION_EXTERNA)
+      .reduce((acc, i) => acc + i.amount, 0);
+
+    // 3. Reinversión Consolidada: reinvestmentExpense + Reinversión Manual de Ganancias
+    const reinvestmentConsolidated = reinvestmentExpense + manualReinvestments;
+
+    // 4. Gastos de Nómina y Vales (pagos a empleados)
+    const payrollExpenses = operatingExpenses
+      .filter(e => e.category === ExpenseCategory.PAYROLL || e.category === ExpenseCategory.VALE_EMPLEADO)
+      .reduce((acc, e) => acc + e.amount, 0);
+
+    const totalOperatingExpenses = operatingExpenses.reduce((acc, e) => acc + e.amount, 0);
+
+    // 5. Utilidad Neta Real: Ventas Totales - Reinversión Consolidada - Gastos de Nómina
+    const realNetProfit = historicalRevenue - reinvestmentConsolidated - payrollExpenses;
+
     const historicalProfit = historicalRevenue - reinvestmentExpense;
 
     // Calcular ventas de los ultimos 7 dias
@@ -148,6 +179,12 @@ export class DashboardService {
       totalFinishedProductCapital,
       totalInventoryCapital,
       reinvestmentExpense,
+      manualReinvestments,
+      externalInvestments,
+      reinvestmentConsolidated,
+      payrollExpenses,
+      totalOperatingExpenses,
+      realNetProfit,
       expectedRevenue,
       lowStockMaterials: lowStockMaterials.map(m => ({
         id: m.id,
@@ -167,3 +204,4 @@ export class DashboardService {
     };
   }
 }
+

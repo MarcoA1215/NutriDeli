@@ -1,37 +1,26 @@
 // @ts-nocheck
-﻿import { useContext } from 'react';
+import { useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { UserRole } from '@nutrideli/shared-types';
 import {
-  IonButtons, IonContent, IonHeader, IonMenuButton, IonPage, IonTitle, IonToolbar, IonGrid, IonRow, IonCol, IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonIcon, IonText, useIonToast, IonList, IonItem, IonLabel, IonBadge, IonButton } from '@ionic/react';
-import { refreshOutline, alertCircleOutline, trendingDownOutline, basketOutline, trendingUpOutline, pieChartOutline, walletOutline, cartOutline } from 'ionicons/icons';
+  IonButtons, IonContent, IonHeader, IonMenuButton, IonPage, IonTitle, IonToolbar,
+  IonGrid, IonRow, IonCol, IonCard, IonCardHeader, IonCardTitle, IonCardContent,
+  IonIcon, IonText, useIonToast, IonList, IonItem, IonLabel, IonBadge, IonButton
+} from '@ionic/react';
+import {
+  refreshOutline, alertCircleOutline, trendingDownOutline, trendingUpOutline,
+  pieChartOutline, walletOutline, cartOutline, businessOutline, cashOutline, layersOutline
+} from 'ionicons/icons';
 import React, { useEffect, useState } from 'react';
 import { apiClient } from '../api/client';
 import type { DashboardSummary } from '../types';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import { InvestmentModal } from '../components/investments/InvestmentModal';
 
 const Dashboard: React.FC = () => {
   const { user } = useContext(AuthContext);
-  if (user?.role !== UserRole.ADMIN) {
-    return (
-      <IonPage>
-        <IonHeader>
-          <IonToolbar color="primary">
-            <IonButtons slot="start"><IonMenuButton /></IonButtons>
-            <IonTitle>Bienvenido</IonTitle>
-          <IonButtons slot="end"><IonButton onClick={() => window.location.reload()}><IonIcon icon={refreshOutline} /></IonButton></IonButtons>
-          </IonToolbar>
-        </IonHeader>
-        <IonContent className="ion-padding ion-text-center">
-          <br /><br />
-          <h2>Hola, {user?.username}</h2>
-          <p>Selecciona una opción del menú lateral para comenzar a trabajar.</p>
-        </IonContent>
-      </IonPage>
-    );
-  }
-
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [showInvestmentModal, setShowInvestmentModal] = useState(false);
   const [presentToast] = useIonToast();
 
   const fetchSummary = async () => {
@@ -48,6 +37,27 @@ const Dashboard: React.FC = () => {
     fetchSummary();
   }, []);
 
+  if (user?.role !== UserRole.ADMIN) {
+    return (
+      <IonPage>
+        <IonHeader>
+          <IonToolbar color="primary">
+            <IonButtons slot="start"><IonMenuButton /></IonButtons>
+            <IonTitle>Bienvenido</IonTitle>
+            <IonButtons slot="end">
+              <IonButton onClick={() => window.location.reload()}><IonIcon icon={refreshOutline} /></IonButton>
+            </IonButtons>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent className="ion-padding ion-text-center">
+          <br /><br />
+          <h2>Hola, {user?.username}</h2>
+          <p>Selecciona una opción del menú lateral para comenzar a trabajar.</p>
+        </IonContent>
+      </IonPage>
+    );
+  }
+
   return (
     <IonPage>
       <IonHeader>
@@ -55,8 +65,12 @@ const Dashboard: React.FC = () => {
           <IonButtons slot="start">
             <IonMenuButton />
           </IonButtons>
-          <IonTitle>Tablero de Inventario y Alertas</IonTitle>
+          <IonTitle>Tablero Contable y Operativo</IonTitle>
           <IonButtons slot="end">
+            <IonButton onClick={() => setShowInvestmentModal(true)} title="Inversión y Reinversión">
+              <IonIcon icon={businessOutline} slot="start" />
+              Inversiones
+            </IonButton>
             <IonButton onClick={fetchSummary}>
               <IonIcon icon={refreshOutline} />
             </IonButton>
@@ -66,72 +80,142 @@ const Dashboard: React.FC = () => {
 
       <IonContent fullscreen className="ion-padding">
         {!summary ? (
-          <p>Cargando datos...</p>
+          <p>Cargando datos contables...</p>
         ) : (
           <IonGrid>
-            {/* Main KPIs Row */}
+            {/* Primary KPI Row: Real Net Profit & Core Balances */}
             <IonRow>
-            <IonCol size="12" sizeSm="6" sizeMd="3">
-              <IonCard color="tertiary">
-                <IonCardHeader>
-                  <IonCardTitle className="ion-text-center">
-                    <IonIcon icon={walletOutline} style={{ fontSize: '2rem' }} />
-                    <br />
-                    Ingresos Históricos
-                  </IonCardTitle>
-                </IonCardHeader>
-                <IonCardContent className="ion-text-center">
-                  <h2>$ {(summary.historicalRevenue || 0).toFixed(2)}</h2>
-                </IonCardContent>
-              </IonCard>
-            </IonCol>
+              {/* Utilidad Neta Real */}
+              <IonCol size="12" sizeSm="6" sizeMd="3">
+                <IonCard color="success">
+                  <IonCardHeader>
+                    <IonCardTitle className="ion-text-center">
+                      <IonIcon icon={trendingUpOutline} style={{ fontSize: '2rem' }} />
+                      <br />
+                      Utilidad Neta Real
+                    </IonCardTitle>
+                  </IonCardHeader>
+                  <IonCardContent className="ion-text-center">
+                    <h2 style={{ fontWeight: 'bold', fontSize: '1.8rem' }}>
+                      $ {(summary.realNetProfit ?? summary.historicalProfit ?? 0).toFixed(2)}
+                    </h2>
+                    <p style={{ margin: 0, fontSize: '0.75rem', opacity: 0.9 }}>
+                      Ventas - Reinversión - Nómina
+                    </p>
+                  </IonCardContent>
+                </IonCard>
+              </IonCol>
 
-            <IonCol size="12" sizeSm="6" sizeMd="3">
-              <IonCard color="warning">
-                <IonCardHeader>
-                  <IonCardTitle className="ion-text-center">
-                    <IonIcon icon={cartOutline} style={{ fontSize: '2rem' }} />
-                    <br />
-                    Gastos de Reinversión
-                  </IonCardTitle>
-                </IonCardHeader>
-                <IonCardContent className="ion-text-center">
-                  <h2 style={{ color: 'white' }}>$ {(summary.reinvestmentExpense || 0).toFixed(2)}</h2>
-                  <p style={{ margin: 0, fontSize: '0.8rem', color: 'white' }}>Inv: $ {(summary.historicalInvestment || 0).toFixed(2)} - Cap: $ {(summary.totalInventoryCapital || 0).toFixed(2)}</p>
-                </IonCardContent>
-              </IonCard>
-            </IonCol>
+              {/* Ingresos Históricos */}
+              <IonCol size="12" sizeSm="6" sizeMd="3">
+                <IonCard color="tertiary">
+                  <IonCardHeader>
+                    <IonCardTitle className="ion-text-center">
+                      <IonIcon icon={walletOutline} style={{ fontSize: '2rem' }} />
+                      <br />
+                      Ventas Totales
+                    </IonCardTitle>
+                  </IonCardHeader>
+                  <IonCardContent className="ion-text-center">
+                    <h2 style={{ fontWeight: 'bold' }}>$ {(summary.historicalRevenue || 0).toFixed(2)}</h2>
+                    <p style={{ margin: 0, fontSize: '0.75rem', opacity: 0.9 }}>Ingresos por órdenes no canceladas</p>
+                  </IonCardContent>
+                </IonCard>
+              </IonCol>
 
-            <IonCol size="12" sizeSm="6" sizeMd="3">
-              <IonCard color="success">
-                <IonCardHeader>
-                  <IonCardTitle className="ion-text-center">
-                    <IonIcon icon={trendingUpOutline} style={{ fontSize: '2rem' }} />
-                    <br />
-                    Ganancia Neta Bruta
-                  </IonCardTitle>
-                </IonCardHeader>
-                <IonCardContent className="ion-text-center">
-                  <h2>$ {(summary.historicalProfit || 0).toFixed(2)}</h2>
-                </IonCardContent>
-              </IonCard>
-            </IonCol>
+              {/* Reinversión Consolidada */}
+              <IonCol size="12" sizeSm="6" sizeMd="3">
+                <IonCard color="warning">
+                  <IonCardHeader>
+                    <IonCardTitle className="ion-text-center">
+                      <IonIcon icon={cartOutline} style={{ fontSize: '2rem' }} />
+                      <br />
+                      Reinversión Consolidada
+                    </IonCardTitle>
+                  </IonCardHeader>
+                  <IonCardContent className="ion-text-center">
+                    <h2 style={{ color: 'white', fontWeight: 'bold' }}>
+                      $ {(summary.reinvestmentConsolidated ?? summary.reinvestmentExpense ?? 0).toFixed(2)}
+                    </h2>
+                    <p style={{ margin: 0, fontSize: '0.75rem', color: 'white' }}>
+                      Insumos ($ {(summary.reinvestmentExpense || 0).toFixed(2)}) + Ganancias ($ {(summary.manualReinvestments || 0).toFixed(2)})
+                    </p>
+                  </IonCardContent>
+                </IonCard>
+              </IonCol>
 
-            <IonCol size="12" sizeSm="6" sizeMd="3">
-              <IonCard color="danger">
-                <IonCardHeader>
-                  <IonCardTitle className="ion-text-center">
-                    <IonIcon icon={trendingDownOutline} style={{ fontSize: '2rem' }} />
-                    <br />
-                    Mermas y Pérdidas
-                  </IonCardTitle>
-                </IonCardHeader>
-                <IonCardContent className="ion-text-center">
-                  <h2>$ {(summary.totalLosses || 0).toFixed(2)}</h2>
-                </IonCardContent>
-              </IonCard>
-            </IonCol>
-          </IonRow>
+              {/* Gastos de Nómina */}
+              <IonCol size="12" sizeSm="6" sizeMd="3">
+                <IonCard color="danger">
+                  <IonCardHeader>
+                    <IonCardTitle className="ion-text-center">
+                      <IonIcon icon={cashOutline} style={{ fontSize: '2rem' }} />
+                      <br />
+                      Gastos de Nómina
+                    </IonCardTitle>
+                  </IonCardHeader>
+                  <IonCardContent className="ion-text-center">
+                    <h2 style={{ fontWeight: 'bold' }}>
+                      $ {(summary.payrollExpenses || 0).toFixed(2)}
+                    </h2>
+                    <p style={{ margin: 0, fontSize: '0.75rem', opacity: 0.9 }}>
+                      Salarios y vales liquidados
+                    </p>
+                  </IonCardContent>
+                </IonCard>
+              </IonCol>
+            </IonRow>
+
+            {/* Secondary KPIs: Inversión Externa, Capital en Stock, Mermas */}
+            <IonRow className="ion-margin-top">
+              <IonCol size="12" sizeSm="6" sizeMd="4">
+                <IonCard color="secondary">
+                  <IonCardHeader>
+                    <IonCardTitle className="ion-text-center">
+                      <IonIcon icon={businessOutline} style={{ fontSize: '1.6rem' }} />
+                      <br />
+                      Inversión Externa Inyectada
+                    </IonCardTitle>
+                  </IonCardHeader>
+                  <IonCardContent className="ion-text-center">
+                    <h3>$ {(summary.externalInvestments || 0).toFixed(2)} USD</h3>
+                    <p style={{ margin: 0, fontSize: '0.75rem', opacity: 0.85 }}>Capital ajeno (aportes socios, préstamos)</p>
+                  </IonCardContent>
+                </IonCard>
+              </IonCol>
+
+              <IonCol size="12" sizeSm="6" sizeMd="4">
+                <IonCard color="light">
+                  <IonCardHeader>
+                    <IonCardTitle className="ion-text-center">
+                      <IonIcon icon={layersOutline} style={{ fontSize: '1.6rem' }} />
+                      <br />
+                      Capital en Inventario Físico
+                    </IonCardTitle>
+                  </IonCardHeader>
+                  <IonCardContent className="ion-text-center">
+                    <h3>$ {(summary.totalInventoryCapital || 0).toFixed(2)} USD</h3>
+                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#666' }}>Valoración actual en estanterías</p>
+                  </IonCardContent>
+                </IonCard>
+              </IonCol>
+
+              <IonCol size="12" sizeSm="6" sizeMd="4">
+                <IonCard color="dark">
+                  <IonCardHeader>
+                    <IonCardTitle className="ion-text-center">
+                      <IonIcon icon={trendingDownOutline} style={{ fontSize: '1.6rem' }} />
+                      <br />
+                      Mermas y Pérdidas
+                    </IonCardTitle>
+                  </IonCardHeader>
+                  <IonCardContent className="ion-text-center">
+                    <h3>$ {(summary.totalLosses || 0).toFixed(2)} USD</h3>
+                    <p style={{ margin: 0, fontSize: '0.75rem', opacity: 0.85 }}>Ajustes por merma en almacén</p>
+                  </IonCardContent>
+                </IonCard>
+              </IonCol>
+            </IonRow>
 
             {/* Charts and Lists Row */}
             <IonRow className="ion-margin-top">
@@ -185,6 +269,7 @@ const Dashboard: React.FC = () => {
               </IonCol>
             </IonRow>
 
+            {/* Low stock alerts */}
             <IonRow className="ion-margin-top">
               <IonCol size="12" sizeMd="6">
                 <IonCard>
@@ -218,7 +303,7 @@ const Dashboard: React.FC = () => {
                 </IonCard>
               </IonCol>
 
-<IonCol size="12" sizeMd="6">
+              <IonCol size="12" sizeMd="6">
                 <IonCard>
                   <IonCardHeader>
                     <IonCardTitle style={{ fontSize: '1.2rem' }}>
@@ -254,12 +339,19 @@ const Dashboard: React.FC = () => {
             </IonRow>
           </IonGrid>
         )}
+
+        {/* Modal de Inversión y Reinversión */}
+        <InvestmentModal
+          isOpen={showInvestmentModal}
+          onClose={() => setShowInvestmentModal(false)}
+          onSaved={() => {
+            fetchSummary();
+          }}
+        />
       </IonContent>
     </IonPage>
   );
 };
+
 export default Dashboard;
-
-
-
 

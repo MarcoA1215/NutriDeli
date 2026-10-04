@@ -15,9 +15,16 @@ export class User {
   @Column({ type: 'varchar', default: UserRole.POS })
   role: UserRole;
 
+  @Column('float', { default: 0, nullable: true })
+  salaryAmount: number;
+
+  @Column({ default: 'SEMANAL', nullable: true })
+  salaryPeriod: string; // 'SEMANAL' | 'QUINCENAL' | 'MENSUAL'
+
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
 }
+

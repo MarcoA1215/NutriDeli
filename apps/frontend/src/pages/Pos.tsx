@@ -8,6 +8,10 @@ import { DeliveryMethod } from '@nutrideli/shared-types';
 import { apiClient } from '../api/client';
 import { PaymentStatus } from '@nutrideli/shared-types';
 
+import { walletOutline } from 'ionicons/icons';
+import { SalaryAdvanceModal } from '../components/salary-advances/SalaryAdvanceModal';
+import { DailyCashDrawerModal } from '../components/pos/DailyCashDrawerModal';
+
 type Product = {
   id: string;
   name: string;
@@ -46,6 +50,8 @@ const Pos: React.FC = () => {
   const [deliveryZones, setDeliveryZones] = useState<DeliveryZone[]>([]);
   const [deliveryZoneId, setDeliveryZoneId] = useState<string>('');
   const [customerAddress, setCustomerAddress] = useState<string>('');
+  const [showAdvanceModal, setShowAdvanceModal] = useState(false);
+  const [showDrawerModal, setShowDrawerModal] = useState(false);
   
   const [presentToast] = useIonToast();
   const [presentAlert] = useIonAlert();
@@ -203,6 +209,16 @@ const Pos: React.FC = () => {
             <IonMenuButton />
           </IonButtons>
           <IonTitle>POS / Caja</IonTitle>
+          <IonButtons slot="end">
+            <IonButton onClick={() => setShowAdvanceModal(true)} title="Vale de Empleado">
+              <IonIcon icon={walletOutline} slot="start" />
+              Vale
+            </IonButton>
+            <IonButton onClick={() => setShowDrawerModal(true)} title="Arqueo de Gaveta">
+              <IonIcon icon={cashOutline} slot="start" />
+              Arqueo
+            </IonButton>
+          </IonButtons>
           <IonButtons slot="end"><IonButton onClick={fetchProducts}><IonIcon icon={refreshOutline} /></IonButton></IonButtons>
           <IonButtons slot="end">
             <IonButton onClick={openRateAlert}>
@@ -409,6 +425,18 @@ const Pos: React.FC = () => {
             </IonCol>
           </IonRow>
         </IonGrid>
+      <SalaryAdvanceModal
+        isOpen={showAdvanceModal}
+        onClose={() => setShowAdvanceModal(false)}
+        onSaved={() => {}}
+        exchangeRate={exchangeRate}
+      />
+
+      <DailyCashDrawerModal
+        isOpen={showDrawerModal}
+        onClose={() => setShowDrawerModal(false)}
+        exchangeRate={exchangeRate}
+      />
       </IonContent>
     </IonPage>
   );

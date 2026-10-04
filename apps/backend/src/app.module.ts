@@ -16,6 +16,9 @@ import { RawMaterialsModule } from './raw-materials/raw-materials.module';
 import { ProductsModule } from './products/products.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { SettingsModule } from './settings/settings.module';
+import { InvestmentsModule } from './investments/investments.module';
+import { OperatingExpensesModule } from './operating-expenses/operating-expenses.module';
+import { SalaryAdvancesModule } from './salary-advances/salary-advances.module';
 
 import { RawMaterial } from './entities/raw-material.entity';
 import { StockMovement } from './entities/stock-movement.entity';
@@ -27,6 +30,9 @@ import { OrderItem } from './entities/order-item.entity';
 import { Settings } from './entities/settings.entity';
 import { ComboItem } from './entities/combo-item.entity';
 import { DeliveryZone } from './entities/delivery-zone.entity';
+import { Investment } from './entities/investment.entity';
+import { OperatingExpense } from './entities/operating-expense.entity';
+import { SalaryAdvance } from './entities/salary-advance.entity';
 
 @Module({
   imports: [
@@ -41,7 +47,11 @@ import { DeliveryZone } from './entities/delivery-zone.entity';
         type: 'postgres',
         url: configService.get<string>('DATABASE_URL'),
         ssl: { rejectUnauthorized: false },
-        entities: [RawMaterial, StockMovement, RecipeItem, Product, ComboItem, ProductionBatch, Order, OrderItem, Settings, DeliveryZone, User],
+        entities: [
+          RawMaterial, StockMovement, RecipeItem, Product, ComboItem, 
+          ProductionBatch, Order, OrderItem, Settings, DeliveryZone, User,
+          Investment, OperatingExpense, SalaryAdvance
+        ],
         synchronize: true,
       }),
       inject: [ConfigService],
@@ -52,10 +62,12 @@ import { DeliveryZone } from './entities/delivery-zone.entity';
     ProductsModule,
     DashboardModule,
     SettingsModule,
+    InvestmentsModule,
+    OperatingExpensesModule,
+    SalaryAdvancesModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: JwtAuthGuard }, { provide: APP_GUARD, useClass: RolesGuard }],
 })
 export class AppModule {}
-
 
